@@ -42,6 +42,10 @@ The project is intended to demonstrate:
 - Sampling-speed versus output-quality comparison
 - Final technical report
 
+## Evaluation layer
+
+The repository contains evaluations to track quantitative fidelity, perceptual/archival quality, robustness across degradation types, sampling-speed trade-offs, and a small nearest-neighbour memorisation audit.
+
 ## Repository structure
 
 ```text

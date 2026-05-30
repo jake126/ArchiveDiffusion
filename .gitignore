@@ -3,7 +3,6 @@ __pycache__/
 .ipynb_checkpoints/
 .env
 .venv/
-application_cv_bullets
 data/raw/*
 data/processed/*
 outputs/models/*
