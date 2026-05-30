@@ -1,0 +1,37 @@
+project: ArchiveDiffusion
+experiment_name: baseline_ddpm_64
+seed: 42
+
+data:
+  image_size: 64
+  channels: 1
+  train_dir: data/processed/train
+  val_dir: data/processed/val
+  batch_size: 32
+
+model:
+  type: UNet2DModel
+  sample_size: 64
+  in_channels: 1
+  out_channels: 1
+  layers_per_block: 2
+  block_out_channels: [64, 128, 128, 256]
+  down_block_types: [DownBlock2D, DownBlock2D, AttnDownBlock2D, DownBlock2D]
+  up_block_types: [UpBlock2D, AttnUpBlock2D, UpBlock2D, UpBlock2D]
+
+scheduler:
+  type: DDPMScheduler
+  num_train_timesteps: 1000
+  beta_schedule: squaredcos_cap_v2
+
+training:
+  num_epochs: 50
+  learning_rate: 0.0001
+  gradient_accumulation_steps: 1
+  mixed_precision: fp16
+  save_every_epochs: 10
+  sample_every_epochs: 5
+
+outputs:
+  model_dir: outputs/models/baseline_ddpm_64
+  sample_dir: outputs/samples/baseline_ddpm_64
