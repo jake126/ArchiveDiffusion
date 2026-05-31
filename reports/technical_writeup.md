@@ -18,11 +18,20 @@ This section will summarise DDPMs, forward noising, reverse denoising, U-Net noi
 
 ## 4. Dataset
 
-This section will describe the public-domain film sources, frame extraction process, pre-processing, split strategy, and licensing notes.
+The first ArchiveDiffusion pilot uses the opening 20 minutes of *Nosferatu* (1922), sourced from the Internet Archive public-domain item `Nosferatu_DVD_quality`. Frames were extracted at one frame every two seconds, converted to grayscale, resized to width 512 pixels, and filtered using OCR-assisted text detection to remove intertitles and title cards.
+
 
 ## 5. Synthetic degradation
 
-This section will define the degradation pipeline used to create paired training examples, including grain, blur, scratches, contrast loss, compression, and missing patches.
+This section defines the degradation pipeline used to create paired training examples, including grain, blur, scratches, contrast loss, compression, and missing patches.
+
+The non-text frames are divided into two candidate sets. The first contains relatively clean archive frames with lower visible degradation. These frames are used to learn a domain-specific visual prior and to create synthetic restoration pairs. The second contains naturally degraded archive frames with stronger visible grain, scratches, marks, uneven exposure, or other artefacts. These are reserved as a real archival restoration stress test.
+
+![ArchiveDiffusion evaluation design](../outputs/figures/archive_diffusion_three_use_cases.png)
+
+The figure above shows the two evaluation regimes. In the synthetic setting, artificial scratches, dust, and grain are added to a clean-ish archive frame. The original frame is retained as a known proxy target, enabling fidelity metrics such as PSNR, SSIM, and edge similarity. In the natural archival setting, the model is applied to genuinely degraded frames where no ground-truth restoration exists. These outputs will be evaluated using structured qualitative review focused on blemish reduction, detail preservation, hallucination avoidance, and preservation of archival film texture.
+
+The central goal is not to erase all grain. ArchiveDiffusion treats restoration as an authenticity-preserving generative problem: improving legibility and reducing unwanted degradation while preserving the visual identity of silent-era film.
 
 ## 6. Model
 

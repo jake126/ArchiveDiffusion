@@ -1,6 +1,6 @@
 # Evaluation Plan
 
-ArchiveDiffusion is not only a visual restoration demo. The evaluation layer is designed to test whether diffusion-based restoration improves archival image quality while preserving the cinematic character of the source material.
+A diffusion restoration model trained on relatively clean archival frames with synthetic degradations can learn a domain-specific visual prior for *Nosferatu*-style imagery. This prior may improve restoration of naturally degraded frames, provided the model is evaluated not only for fidelity but also for preservation of archival texture.
 
 ## Evaluation Questions
 
@@ -10,60 +10,32 @@ ArchiveDiffusion is not only a visual restoration demo. The evaluation layer is 
 4. What is the quality-speed trade-off under reduced-step sampling or alternative schedulers?
 5. Are outputs overly similar to training frames, suggesting memorisation rather than restoration?
 
-## Evaluation Tracks
+# Evaluation Plan
 
-### Track A: Reconstruction Fidelity
+ArchiveDiffusion evaluates restoration quality across two complementary settings: controlled synthetic degradation and naturally degraded archival material.
 
-Used when a clean reference frame exists because degradation has been applied synthetically.
+## Evaluation setting A: synthetic degradation fidelity
 
-Metrics:
+In this setting, relatively clean archive frames are treated as proxy targets. Synthetic degradations such as scratches, dust marks, blur, contrast loss, compression artefacts, or additional grain are applied to create paired examples.
 
-- PSNR
-- SSIM
-- LPIPS, optional
-- MSE / MAE
+The model input is the synthetically degraded frame. The target is the original clean-ish archive frame.
 
-Comparisons:
+This setting supports quantitative fidelity evaluation because the target is known. Initial metrics will include PSNR, SSIM, and edge similarity, with LPIPS considered as a later perceptual metric. These metrics are interpreted as reconstruction-fidelity measures rather than complete measures of restoration quality.
 
-- degraded input vs clean target
-- restored output vs clean target
-- baseline classical filters vs diffusion restoration
+## Evaluation setting B: naturally degraded archival restoration
 
-### Track B: Perceptual and Archival Quality
+In this setting, the model is applied to naturally degraded frames selected from the source film. These frames contain real archival artefacts such as scratches, marks, heavy grain, blotches, low-light damage, compression artefacts, or uneven exposure.
 
-Used for both synthetic and naturally degraded archival stills.
+No ground-truth restored target exists for these frames. Evaluation therefore uses structured qualitative review. Outputs are assessed for blemish reduction, preservation of meaningful visual detail, introduction of new artefacts, and overall restoration usefulness.
 
-Criteria:
+## Evaluation setting C: authenticity and over-smoothing
 
-- perceived sharpness
-- preservation of faces, objects, and edges
-- preservation of film grain / texture
-- absence of plastic smoothing
-- absence of hallucinated modern artefacts
-- consistency with the original cinematic mood
+ArchiveDiffusion does not aim to erase all film grain. The goal is authenticity-preserving restoration: improving legibility and reducing unwanted degradation while preserving the visual texture and cinematic identity of archival footage.
 
-Outputs:
+For both synthetic and naturally degraded examples, outputs will be reviewed for grain preservation, contrast preservation, plausible detail treatment, hallucination risk, and over-smoothing. A successful restoration should not make a 1922 film frame look artificially modern, waxy, or ahistorical.
 
-- side-by-side restoration grids
-- reviewer notes
-- optional small human preference study
 
-### Track C: Robustness by Degradation Type
-
-Stress tests the model across controlled degradation families.
-
-Degradations:
-
-- Gaussian noise / film grain
-- blur
-- compression
-- scratches and dust
-- contrast loss
-- missing patches / inpainting masks
-
-For each degradation family, evaluate light, medium, and heavy severity.
-
-### Track D: Speed / Sampling Efficiency
+## Evaluation setting D: Speed / Sampling Efficiency
 
 Tests whether faster sampling sacrifices quality.
 
@@ -71,8 +43,6 @@ Comparisons:
 
 - full-step DDPM sampling
 - reduced-step DDPM sampling
-- DDIM-style sampling, if implemented
-- later: distilled or student model sampling, if implemented
 
 Metrics:
 
@@ -81,7 +51,7 @@ Metrics:
 - PSNR / SSIM / LPIPS
 - qualitative quality notes
 
-### Track E: Memorisation / Nearest-Neighbour Audit
+### Evaluation setting E: Memorisation / Nearest-Neighbour Audit
 
 This is a small responsible-AI audit rather than the core project.
 
