@@ -14,7 +14,6 @@ data/degraded/*
 data/processed/*
 outputs/models/*
 outputs/samples/*
-outputs/figures/*
 *.mp4
 *.mpg
 *.mkv
