@@ -173,3 +173,26 @@ python ".\scripts\create_three_use_case_visual.py" `
   --natural_degraded_dir ".\data\curated\nosferatu_degraded_candidates" `
   --output_path ".\outputs\figures\archive_diffusion_three_use_cases.png"
 ```powershell
+
+\## 10. synthetic datasets (01/06/2026)
+python ".\scripts\create_synthetic_restoration_dataset.py" `
+  --cleanish_dir ".\data\curated\nosferatu_cleanish_candidates" `
+  --output_dir ".\data\processed\synthetic_restoration\nosferatu_v0" `
+  --n_images 50 `
+  --image_size 128 `
+  --seed 42
+
+\## 11. baseline restoration for benchmarking (01/06/2026)
+python ".\scripts\run_baseline_restoration.py" `
+  --dataset_dir ".\data\processed\synthetic_restoration\nosferatu_v0" `
+  --output_dir ".\outputs\predictions\baselines_nosferatu_v0"
+
+\## 12. evaluate baseline restorations (01/06/2026)
+New-Item -ItemType Directory -Force ".\evaluations\results"
+New-Item -ItemType Directory -Force ".\outputs\evaluation_grids"
+
+python ".\scripts\evaluate_restoration_outputs.py" `
+  --prediction_manifest ".\outputs\predictions\baselines_nosferatu_v0\prediction_manifest.csv" `
+  --output_metrics ".\evaluations\results\baseline_restoration_metrics.csv" `
+  --output_summary ".\evaluations\results\baseline_restoration_summary.csv" `
+  --output_grid ".\outputs\evaluation_grids\baseline_restoration_examples.png"

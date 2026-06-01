@@ -39,25 +39,33 @@ This section will describe the model architecture, scheduler, training objective
 
 ## 7. Experiments
 
-### 7.1 Unconditional DDPM baseline
+### 7.1 Baseline
+
+Baseline evaluation shows that simple classical methods behave differently across degradation types. Median filtering is effective for synthetic grain, mask-based inpainting is strong for local scratch/dust artefacts, and none of the simple baselines substantially improves blur/contrast degradation. These results justify reporting metrics by degradation type and motivate diffusion models as a flexible restoration approach, particularly where the restoration requires both local artefact removal and preservation or reconstruction of archival texture.
+
+
+
+### 7.2 Unconditional DDPM baseline
 
 To be completed.
 
-### 7.2 Restoration model
+### 7.3 Restoration model
 
 To be completed.
 
-### 7.3 Authenticity preservation analysis
+### 7.4 Authenticity preservation analysis
 
 To be completed.
 
-### 7.4 Sampling acceleration
+### 7.5 Sampling acceleration
 
 To be completed.
 
 ## 8. Evaluation
 
 Planned metrics include PSNR, SSIM, optional LPIPS, edge preservation, texture retention, and qualitative side-by-side comparison.
+
+The high-frequency ratio is used as an initial over-smoothing diagnostic. Values far below 1 indicate loss of texture relative to the target, while values far above 1 indicate excess noise or artefacts. This metric is interpreted alongside PSNR/SSIM because restoration quality is not equivalent to smoothing.
 
 ## 9. Results
 

@@ -137,3 +137,27 @@ The synthetic blemish looks quite digitally artificial; grain is clear and scrat
 
 **Next step:**  
 Embed the figure in the technical write-up, then begin formalising the evaluation metrics and rubrics for synthetic fidelity, real blemish removal, and over-smoothing/authenticity preservation.
+
+## 2026-06-01 - Baseline synthetic restoration evaluation
+
+**Question:**  
+How do simple non-diffusion restoration baselines perform on the synthetic archival blemish benchmark?
+
+**Setup:**  
+Created a synthetic restoration dataset from clean-ish *Nosferatu* frames. Each target frame was resized to 128×128 grayscale and degraded using scratch/dust, grain, and blur/contrast transformations. Baselines included unchanged input, median filtering, OpenCV inpainting/denoising, and non-local means denoising.
+
+**Result:**  
+Pending review of `evaluations/results/baseline_restoration_summary.csv` and `outputs/evaluation_grids/baseline_restoration_examples.png`.
+
+**What worked:**  
+The evaluation harness now produces per-example metrics, grouped summary metrics, and qualitative grids using a consistent prediction-manifest format. It demonstrates that the synthetic tasks have different difficulty profiles - for grain, median is strong, for scratch dust, mask-based inpainting is strong (requiring access to a mask), and for blur contrast, all the baselines are pretty weak. A good diffusion model should: 
+
+* Beat median on grain, or preserve more structure at similar denoising quality
+* Beat/informatively compare with inpainting on scratch_dust
+* Beat all simple baselines on blur_contrast
+
+**What failed / looked suspicious:**  
+Pending. Key checks: whether synthetic blemishes look plausibly archival, whether inpainting is unfairly advantaged by masks, and whether denoising baselines over-smooth film texture.
+
+**Next step:**  
+Use the same synthetic dataset and evaluation harness for the first conditional diffusion model.
