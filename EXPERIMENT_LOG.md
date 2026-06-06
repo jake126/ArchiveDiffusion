@@ -161,3 +161,29 @@ Pending. Key checks: whether synthetic blemishes look plausibly archival, whethe
 
 **Next step:**  
 Use the same synthetic dataset and evaluation harness for the first conditional diffusion model.
+
+## 2026-06-06 - First conditional DDPM restoration model
+
+**Question:**  
+Can a compact conditional DDPM learn to restore synthetically degraded archival film crops when conditioned on the degraded input?
+
+**Setup:**  
+Training data: `data/processed/synthetic_restoration/nosferatu_v0/`.  
+Image size: 128×128 grayscale.  
+Conditioning: noisy target concatenated with degraded input as two input channels.  
+Model: compact U-Net diffusion model using a DDPM scheduler.  
+Training objective: predict Gaussian noise added to the clean target image.  
+Evaluation: same synthetic restoration metrics as the classical baselines.
+Trained on CPU
+
+**Result:**  
+Model ran and training loss improved over the limited number of runs (5). Generated restoration grid, and summary metrics.
+
+**What worked:**  
+Model ran end-to-end and training loss fell.
+
+**What failed / looked suspicious:**  
+Model outputs significantly underperformed baseline, both visually in the restoration grid and in terms of summary metrics.
+
+**Next step:**  
+Iterate through more complex example parameter inputs.

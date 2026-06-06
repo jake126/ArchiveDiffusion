@@ -196,3 +196,30 @@ python ".\scripts\evaluate_restoration_outputs.py" `
   --output_metrics ".\evaluations\results\baseline_restoration_metrics.csv" `
   --output_summary ".\evaluations\results\baseline_restoration_summary.csv" `
   --output_grid ".\outputs\evaluation_grids\baseline_restoration_examples.png"
+
+\## 13. Conditional DDPM training
+
+```powershell
+python ".\scripts\train_conditional_ddpm.py" `
+  --dataset_dir ".\data\processed\synthetic_restoration\nosferatu_v0" `
+  --output_dir ".\outputs\models\conditional_ddpm_nosferatu_v0" `
+  --image_size 128 `
+  --batch_size 8 `
+  --epochs 50 `
+  --learning_rate 1e-4 `
+  --seed 42
+
+\## 14. Conditional DDPM Sampling
+python ".\scripts\sample_conditional_ddpm.py" `
+  --model_dir ".\outputs\models\conditional_ddpm_nosferatu_v0_cpu_test\final" `
+  --dataset_dir ".\data\processed\synthetic_restoration\nosferatu_v0" `
+  --output_dir ".\outputs\predictions\conditional_ddpm_nosferatu_v0" `
+  --method_name "conditional_ddpm_50_steps" `
+  --num_inference_steps 50
+
+\## 15. Conditional DDPM Evaluation
+python ".\scripts\evaluate_restoration_outputs.py" `
+  --prediction_manifest ".\outputs\predictions\conditional_ddpm_nosferatu_v0\prediction_manifest.csv" `
+  --output_metrics ".\evaluations\results\conditional_ddpm_restoration_metrics.csv" `
+  --output_summary ".\evaluations\results\conditional_ddpm_restoration_summary.csv" `
+  --output_grid ".\outputs\evaluation_grids\conditional_ddpm_restoration_examples.png"
