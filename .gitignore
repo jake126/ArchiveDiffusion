@@ -15,6 +15,7 @@ data/processed/*
 outputs/models/*
 outputs/samples/*
 outputs/predictions/*
+mlruns/
 *.mp4
 *.mpg
 *.mkv

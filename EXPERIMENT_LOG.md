@@ -187,3 +187,28 @@ Model outputs significantly underperformed baseline, both visually in the restor
 
 **Next step:**  
 Iterate through more complex example parameter inputs.
+
+## 2026-06-07 - MLflow tracking and longer conditional DDPM run
+
+Question:
+Does a longer conditional DDPM training run produce useful synthetic restoration outputs, and does 100-step sampling improve over 50-step sampling?
+
+Setup:
+Training data: data/processed/synthetic_restoration/nosferatu_v0/.
+Model: compact conditional DDPM U-Net.
+Conditioning: noisy target concatenated with degraded input as two channels.
+Training objective: epsilon/noise prediction.
+Sampling variants: 50-step DDPM sampling and 100-step DDPM sampling.
+Evaluation: synthetic restoration metrics grouped by degradation type, using the same evaluation harness as the classical baselines.
+
+Result:
+The 50-step model produces visually promising restorations in some examples, especially where synthetic blemishes are visibly removed. However, quantitative metrics remain weak compared with the classical baselines and compared with the degraded input. The model appears to change too much of the image, leading to low PSNR/SSIM despite visually plausible blemish removal. The 100-step sampler improves some metrics, particularly for scratch_dust, but is not clearly or consistently better than 50-step sampling.
+
+What worked:
+The end-to-end diffusion pipeline now works: training, checkpoint loading, sampling, prediction manifest creation, metric evaluation, and visual-grid generation. Training loss decreased substantially during the CPU run, suggesting the model is learning the denoising objective. The model shows early qualitative evidence of restoration behaviour, especially for local blemish removal.
+
+What failed / looked suspicious:
+The diffusion outputs do not yet beat the baselines. Full-image fidelity metrics are worse than the degraded input across degradation types, suggesting over-editing or poor conditioning. High-frequency ratios remain below 1, indicating possible over-smoothing and loss of archival texture. Increasing sampling from 50 to 100 steps provides only modest benefit and does not solve the main fidelity problem.
+
+Next step:
+Introduce explicit train/validation/test splits grouped by source frame, so evaluation is cleaner and leakage is avoided. Then run a better-controlled training experiment using training examples only, validation for monitoring/checkpoint selection, and a held-out test set for final comparison. Also tidy the repository by ignoring generated model/prediction folders, keeping only selected metrics and documentation figures under version control.

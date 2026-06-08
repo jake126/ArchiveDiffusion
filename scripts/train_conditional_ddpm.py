@@ -14,6 +14,11 @@ from torch.utils.data import Dataset, DataLoader
 
 from diffusers import UNet2DModel, DDPMScheduler
 
+try:
+    import mlflow
+except ImportError:
+    mlflow = None
+
 
 def load_image(path: Path) -> torch.Tensor:
     img = Image.open(path).convert("L")
@@ -92,6 +97,10 @@ def main(
     max_examples,
     seed,
     save_every_epochs,
+    use_mlflow,
+    mlflow_tracking_uri,
+    mlflow_experiment_name,
+    run_name,
 ):
     dataset_dir = Path(dataset_dir)
     output_dir = Path(output_dir)
@@ -105,6 +114,34 @@ def main(
     print(f"Using device: {device}")
 
     metadata_path = dataset_dir / "metadata.csv"
+
+    active_mlflow = False
+
+    if use_mlflow:
+        if mlflow is None:
+            raise ImportError("MLflow is not installed. Run: python -m pip install mlflow")
+
+        mlflow.set_tracking_uri(mlflow_tracking_uri)
+        mlflow.set_experiment(mlflow_experiment_name)
+
+        mlflow.start_run(run_name=run_name)
+        active_mlflow = True
+
+        mlflow.log_params({
+            "dataset_dir": str(dataset_dir),
+            "metadata_path": str(metadata_path),
+            "image_size": image_size,
+            "batch_size": batch_size,
+            "epochs": epochs,
+            "learning_rate": learning_rate,
+            "num_train_timesteps": num_train_timesteps,
+            "max_examples": max_examples,
+            "seed": seed,
+            "device": str(device),
+            "model_type": "conditional_ddpm_unet2d",
+            "conditioning": "channel_concat_noisy_target_plus_degraded_input",
+        })
+
 
     dataset = SyntheticRestorationDataset(
         metadata_path=metadata_path,
@@ -176,6 +213,8 @@ def main(
             optimizer.step()
 
             loss_value = float(loss.item())
+            if active_mlflow:
+                mlflow.log_metric("train_loss_step", loss_value, step=global_step)
             epoch_losses.append(loss_value)
             global_step += 1
 
@@ -226,6 +265,15 @@ def main(
     print(f"Saved training log to: {training_log_path}")
     print(f"Saved run config to: {output_dir / 'run_config.json'}")
 
+    if active_mlflow:
+        mlflow.log_artifact(str(training_log_path))
+        mlflow.log_artifact(str(output_dir / "run_config.json"))
+
+        # Log the final model directory as artifacts.
+        mlflow.log_artifacts(str(final_dir), artifact_path="final_model")
+
+        mlflow.end_run()
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -239,6 +287,11 @@ if __name__ == "__main__":
     parser.add_argument("--max_examples", type=int, default=None)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--save_every_epochs", type=int, default=10)
+    # mlflow
+    parser.add_argument("--use_mlflow", action="store_true")
+    parser.add_argument("--mlflow_tracking_uri", default="sqlite:///mlflow.db")
+    parser.add_argument("--mlflow_experiment_name", default="ArchiveDiffusion")
+    parser.add_argument("--run_name", default=None)
 
     args = parser.parse_args()
 
@@ -253,4 +306,8 @@ if __name__ == "__main__":
         max_examples=args.max_examples,
         seed=args.seed,
         save_every_epochs=args.save_every_epochs,
+        use_mlflow=args.use_mlflow,
+        mlflow_tracking_uri=args.mlflow_tracking_uri,
+        mlflow_experiment_name=args.mlflow_experiment_name,
+        run_name=args.run_name,
     )

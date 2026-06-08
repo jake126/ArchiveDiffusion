@@ -9,6 +9,11 @@ import numpy as np
 from PIL import Image, ImageOps, ImageDraw
 from tqdm import tqdm
 
+try:
+    import mlflow
+except ImportError:
+    mlflow = None
+
 
 def load_gray_float(path: Path) -> np.ndarray:
     arr = np.asarray(Image.open(path).convert("L")).astype(np.float32)
@@ -229,7 +234,16 @@ def make_grid(prediction_rows, output_path: Path, max_examples=6):
     canvas.save(output_path)
 
 
-def main(prediction_manifest, output_metrics, output_summary, output_grid):
+def main(
+    prediction_manifest,
+    output_metrics,
+    output_summary,
+    output_grid,
+    use_mlflow=False,
+    mlflow_tracking_uri="file:./mlruns",
+    mlflow_experiment_name="ArchiveDiffusion",
+    run_name=None,
+):
     prediction_manifest = Path(prediction_manifest)
     rows = read_csv(prediction_manifest)
 
@@ -244,6 +258,44 @@ def main(prediction_manifest, output_metrics, output_summary, output_grid):
 
     make_grid(rows, Path(output_grid))
 
+    if use_mlflow:
+        if mlflow is None:
+            raise ImportError("MLflow is not installed. Run: python -m pip install mlflow")
+
+        mlflow.set_tracking_uri(mlflow_tracking_uri)
+        mlflow.set_experiment(mlflow_experiment_name)
+
+        with mlflow.start_run(run_name=run_name):
+            mlflow.log_param("prediction_manifest", str(prediction_manifest))
+            mlflow.log_param("output_metrics", str(output_metrics))
+            mlflow.log_param("output_summary", str(output_summary))
+            mlflow.log_param("output_grid", str(output_grid))
+
+            # Log aggregate summary metrics with names like:
+            # psnr_mean/conditional_ddpm_v1_50_steps/scratch_dust
+            for row in summary_rows:
+                method = row["method"]
+                degradation_type = row["degradation_type"]
+
+                for key, value in row.items():
+                    if key in {"method", "degradation_type", "n_examples"}:
+                        continue
+
+                    if value == "":
+                        continue
+
+                    try:
+                        metric_value = float(value)
+                    except ValueError:
+                        continue
+
+                    metric_name = f"{key}/{method}/{degradation_type}"
+                    mlflow.log_metric(metric_name, metric_value)
+
+            mlflow.log_artifact(str(output_metrics))
+            mlflow.log_artifact(str(output_summary))
+            mlflow.log_artifact(str(output_grid))
+
     print(f"Wrote per-example metrics: {output_metrics}")
     print(f"Wrote summary metrics: {output_summary}")
     print(f"Wrote example grid: {output_grid}")
@@ -255,6 +307,11 @@ if __name__ == "__main__":
     parser.add_argument("--output_metrics", required=True)
     parser.add_argument("--output_summary", required=True)
     parser.add_argument("--output_grid", required=True)
+    # mlflow
+    parser.add_argument("--use_mlflow", action="store_true")
+    parser.add_argument("--mlflow_tracking_uri", default="file:./mlruns")
+    parser.add_argument("--mlflow_experiment_name", default="ArchiveDiffusion")
+    parser.add_argument("--run_name", default=None)
     args = parser.parse_args()
 
     main(
@@ -262,4 +319,8 @@ if __name__ == "__main__":
         output_metrics=args.output_metrics,
         output_summary=args.output_summary,
         output_grid=args.output_grid,
+        use_mlflow=args.use_mlflow,
+        mlflow_tracking_uri=args.mlflow_tracking_uri,
+        mlflow_experiment_name=args.mlflow_experiment_name,
+        run_name=args.run_name,
     )
