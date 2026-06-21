@@ -15,7 +15,9 @@ data/processed/*
 outputs/models/*
 outputs/samples/*
 outputs/predictions/*
+evaluations/human_review/review_sheets/*
 mlruns/
+mlflow.db
 *.mp4
 *.mpg
 *.mkv

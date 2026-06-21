@@ -32,11 +32,22 @@ def load_image(path: Path) -> torch.Tensor:
 
 
 class SyntheticRestorationDataset(Dataset):
-    def __init__(self, metadata_path: Path, max_examples=None, seed=42):
+    def __init__(self, metadata_path: Path, split=None, max_examples=None, seed=42):
         self.metadata_path = metadata_path
+        self.split = split
 
         with metadata_path.open("r", newline="", encoding="utf-8") as f:
             rows = list(csv.DictReader(f))
+
+        if split is not None:
+            if "split" not in rows[0]:
+                raise ValueError(
+                    f"Requested split='{split}', but metadata file has no 'split' column: {metadata_path}"
+                )
+            rows = [row for row in rows if row["split"] == split]
+
+        if not rows:
+            raise ValueError(f"No rows found for split={split} in {metadata_path}")
 
         rng = random.Random(seed)
         rng.shuffle(rows)
@@ -60,9 +71,9 @@ class SyntheticRestorationDataset(Dataset):
             "condition": condition,
             "example_id": row["example_id"],
             "degradation_type": row["degradation_type"],
+            "split": row.get("split", ""),
         }
-
-
+    
 def build_model(image_size: int):
     model = UNet2DModel(
         sample_size=image_size,
@@ -101,6 +112,9 @@ def main(
     mlflow_tracking_uri,
     mlflow_experiment_name,
     run_name,
+    metadata_file,
+    train_split,
+    val_split,
 ):
     dataset_dir = Path(dataset_dir)
     output_dir = Path(output_dir)
@@ -113,7 +127,48 @@ def main(
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
 
-    metadata_path = dataset_dir / "metadata.csv"
+    metadata_path = Path(metadata_file)
+    if not metadata_path.is_absolute():
+        metadata_path = dataset_dir / metadata_path
+
+    if not metadata_path.exists():
+        raise FileNotFoundError(
+            f"Could not find metadata file: {metadata_path}. "
+            "Run create_train_val_test_split.py first, or pass --metadata_file metadata.csv without split filtering."
+        )
+
+    train_dataset = SyntheticRestorationDataset(
+        metadata_path=metadata_path,
+        split=train_split,
+        max_examples=max_examples,
+        seed=seed,
+    )
+
+    val_dataset = SyntheticRestorationDataset(
+        metadata_path=metadata_path,
+        split=val_split,
+        max_examples=None,
+        seed=seed + 1,
+    )
+
+    dataloader = DataLoader(
+        train_dataset,
+        batch_size=batch_size,
+        shuffle=True,
+        num_workers=0,
+        drop_last=False,
+    )
+
+    val_dataloader = DataLoader(
+        val_dataset,
+        batch_size=batch_size,
+        shuffle=False,
+        num_workers=0,
+        drop_last=False,
+    )
+
+    print(f"Training examples: {len(train_dataset)}")
+    print(f"Validation examples: {len(val_dataset)}")
 
     active_mlflow = False
 
@@ -140,22 +195,13 @@ def main(
             "device": str(device),
             "model_type": "conditional_ddpm_unet2d",
             "conditioning": "channel_concat_noisy_target_plus_degraded_input",
+            "metadata_file": str(metadata_path),
+            "train_split": train_split,
+            "val_split": val_split,
+            "n_train_examples": len(train_dataset),
+            "n_val_examples": len(val_dataset),
         })
 
-
-    dataset = SyntheticRestorationDataset(
-        metadata_path=metadata_path,
-        max_examples=max_examples,
-        seed=seed,
-    )
-
-    dataloader = DataLoader(
-        dataset,
-        batch_size=batch_size,
-        shuffle=True,
-        num_workers=0,
-        drop_last=False,
-    )
 
     model = build_model(image_size=image_size).to(device)
 
@@ -172,10 +218,17 @@ def main(
     )
 
     training_log_path = output_dir / "training_log.csv"
+    
 
     with training_log_path.open("w", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
         writer.writerow(["epoch", "step", "loss"])
+
+    validation_log_path = output_dir / "validation_log.csv"
+
+    with validation_log_path.open("w", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+        writer.writerow(["epoch", "val_loss"])
 
     global_step = 0
 
@@ -227,6 +280,25 @@ def main(
         mean_loss = float(np.mean(epoch_losses))
         print(f"Epoch {epoch} mean loss: {mean_loss:.6f}")
 
+        val_loss = evaluate_denoising_loss(
+            model=model,
+            dataloader=val_dataloader,
+            noise_scheduler=noise_scheduler,
+            device=device,
+        )
+
+        if val_loss is not None:
+            print(f"Epoch {epoch} validation loss: {val_loss:.6f}")
+
+            with validation_log_path.open("a", newline="", encoding="utf-8") as f:
+                writer = csv.writer(f)
+                writer.writerow([epoch, val_loss])
+
+        if active_mlflow:
+            mlflow.log_metric("train_loss_epoch", mean_loss, step=epoch)
+            if val_loss is not None:
+                mlflow.log_metric("val_loss_epoch", val_loss, step=epoch)
+
         if epoch % save_every_epochs == 0 or epoch == epochs:
             checkpoint_dir = output_dir / f"checkpoint_epoch_{epoch:04d}"
             checkpoint_dir.mkdir(parents=True, exist_ok=True)
@@ -256,6 +328,11 @@ def main(
         "device": str(device),
         "model_type": "conditional_ddpm_unet2d",
         "conditioning": "channel_concat_noisy_target_plus_degraded_input",
+        "metadata_file": str(metadata_path),
+        "train_split": train_split,
+        "val_split": val_split,
+        "n_train_examples": len(train_dataset),
+        "n_val_examples": len(val_dataset),
     }
 
     with (output_dir / "run_config.json").open("w", encoding="utf-8") as f:
@@ -269,8 +346,11 @@ def main(
         mlflow.log_artifact(str(training_log_path))
         mlflow.log_artifact(str(output_dir / "run_config.json"))
 
-        # Log the final model directory as artifacts.
+        # Log the final model directory
         mlflow.log_artifacts(str(final_dir), artifact_path="final_model")
+
+        # Log validation
+        mlflow.log_artifact(str(validation_log_path))
 
         mlflow.end_run()
 
@@ -292,8 +372,45 @@ if __name__ == "__main__":
     parser.add_argument("--mlflow_tracking_uri", default="sqlite:///mlflow.db")
     parser.add_argument("--mlflow_experiment_name", default="ArchiveDiffusion")
     parser.add_argument("--run_name", default=None)
+    # train test split
+    parser.add_argument("--metadata_file", default="metadata_with_splits.csv")
+    parser.add_argument("--train_split", default="train")
+    parser.add_argument("--val_split", default="val")
 
     args = parser.parse_args()
+
+    @torch.no_grad()
+    def evaluate_denoising_loss(model, dataloader, noise_scheduler, device):
+        model.eval()
+        losses = []
+
+        for batch in dataloader:
+            clean = batch["target"].to(device)
+            condition = batch["condition"].to(device)
+
+            noise = torch.randn_like(clean)
+            timesteps = torch.randint(
+                0,
+                noise_scheduler.config.num_train_timesteps,
+                (clean.shape[0],),
+                device=device,
+                dtype=torch.long,
+            )
+
+            noisy_clean = noise_scheduler.add_noise(clean, noise, timesteps)
+            model_input = torch.cat([noisy_clean, condition], dim=1)
+
+            noise_pred = model(model_input, timesteps).sample
+            loss = F.mse_loss(noise_pred, noise)
+
+            losses.append(float(loss.item()))
+
+        model.train()
+
+        if not losses:
+            return None
+
+        return float(np.mean(losses))
 
     main(
         dataset_dir=args.dataset_dir,
@@ -310,4 +427,7 @@ if __name__ == "__main__":
         mlflow_tracking_uri=args.mlflow_tracking_uri,
         mlflow_experiment_name=args.mlflow_experiment_name,
         run_name=args.run_name,
+        metadata_file=args.metadata_file,
+        train_split=args.train_split,
+        val_split=args.val_split,
     )

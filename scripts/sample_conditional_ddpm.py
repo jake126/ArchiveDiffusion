@@ -65,6 +65,8 @@ def restore_image(
 def main(
     model_dir,
     dataset_dir,
+    metadata_file,
+    split,
     output_dir,
     method_name,
     num_inference_steps,
@@ -78,8 +80,28 @@ def main(
     prediction_dir = output_dir / method_name
     prediction_dir.mkdir(parents=True, exist_ok=True)
 
-    metadata_path = dataset_dir / "metadata.csv"
+    metadata_path = Path(metadata_file)
+    if not metadata_path.is_absolute():
+        metadata_path = dataset_dir / metadata_path
+
+    if not metadata_path.exists():
+        raise FileNotFoundError(f"Could not find metadata file: {metadata_path}")
+
     rows = read_metadata(metadata_path)
+
+    if split is not None:
+        if rows and "split" not in rows[0]:
+            raise ValueError(
+                f"Requested split='{split}', but metadata file has no 'split' column: {metadata_path}"
+            )
+        rows = [row for row in rows if row["split"] == split]
+
+    if not rows:
+        raise ValueError(f"No metadata rows found for split={split} in {metadata_path}")
+
+    print(f"Sampling {len(rows)} examples from metadata: {metadata_path}")
+    if split is not None:
+        print(f"Using split: {split}")
 
     if max_examples is not None:
         rng = random.Random(seed)
@@ -125,6 +147,7 @@ def main(
             "prediction_path": str(pred_path),
             "num_inference_steps": num_inference_steps,
             "runtime_seconds": round(runtime_seconds, 6),
+            "split": row.get("split", ""),
         })
 
     manifest_path = output_dir / "prediction_manifest.csv"
@@ -139,6 +162,7 @@ def main(
             "prediction_path",
             "num_inference_steps",
             "runtime_seconds",
+            "split",
         ]
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
@@ -157,12 +181,17 @@ if __name__ == "__main__":
     parser.add_argument("--num_inference_steps", type=int, default=100)
     parser.add_argument("--max_examples", type=int, default=None)
     parser.add_argument("--seed", type=int, default=42)
+    # validation
+    parser.add_argument("--metadata_file", default="metadata.csv")
+    parser.add_argument("--split", default=None)
 
     args = parser.parse_args()
 
     main(
         model_dir=args.model_dir,
         dataset_dir=args.dataset_dir,
+        metadata_file=args.metadata_file,
+        split=args.split,
         output_dir=args.output_dir,
         method_name=args.method_name,
         num_inference_steps=args.num_inference_steps,
