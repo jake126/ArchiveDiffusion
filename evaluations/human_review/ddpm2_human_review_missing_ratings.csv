@@ -1,0 +1,1 @@
+review_id,example_id,degradation_type,split,blind_label,artifact_removal_1_5,detail_preservation_1_5,texture_authenticity_1_5,over_smoothing_1_5,hallucination_risk_1_5,overall_1_5,choose_for_restoration,notes,true_method,prediction_path,manifest_path,human_composite_score

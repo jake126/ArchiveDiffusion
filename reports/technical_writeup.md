@@ -67,6 +67,20 @@ Planned metrics include PSNR, SSIM, optional LPIPS, edge preservation, texture r
 
 The high-frequency ratio is used as an initial over-smoothing diagnostic. Values far below 1 indicate loss of texture relative to the target, while values far above 1 indicate excess noise or artefacts. This metric is interpreted alongside PSNR/SSIM because restoration quality is not equivalent to smoothing.
 
+
+### Blinded human review
+
+The initial automatic evaluation suggested that the conditional DDPM outputs were weak relative to classical baselines, particularly under PSNR, SSIM, and MAE. However, visual inspection suggested that the diffusion model was often removing visible blemishes and producing more plausible restorations than these metrics implied. To test whether the evaluation criteria were too pixel-fidelity-driven, I added a blinded human review workflow.
+
+For each held-out test example, the reviewer was shown the degraded input, the synthetic ground-truth target, and one anonymous model output. Method names were hidden during scoring. Each output was rated for artifact removal, detail preservation, texture authenticity, over-smoothing, hallucination risk, overall restoration quality, and whether the reviewer would choose it as a restoration. I tested a 50- and 100-step DDPM trained before implementing the test-train split ("pre-split"), and a 50-step DDPM split-aware model ("post-split").
+
+The review covered 21 held-out test examples across blur/contrast, grain, and scratch/dust degradation types, with seven anonymous outputs per example. The results showed that the DDPM outputs were preferred more often than the automatic metrics suggested. The pre-split 50-step and 100-step DDPM samplers achieved the highest mean overall human scores, with the 100-step sampler receiving the highest yes/maybe restoration-choice rate. Classical median and non-local-means baselines were rated poorly, even though they can perform well on pixel-level metrics. This suggests that PSNR and SSIM alone over-reward conservative smoothing and under-value perceptually useful restoration. The post-split achieved inferior result, indicating clear overfitting in the pre-split cases, but still comfortably outperformed the baseline models (average score of 2.7 across the metrics compared to the best baseline of 2.4 for inpainting).
+
+The results were degradation-specific. Diffusion outputs were preferred for blur/contrast and grain examples, where classical filters often produced over-smoothed or visually unconvincing results. For scratch/dust examples, the mask-informed inpainting baseline remained strongest, which is expected because it has access to the synthetic damage mask. This highlights the need to report restoration performance by degradation type and to distinguish mask-informed baselines from methods that operate without oracle damage information.
+
+These findings motivate a two-layer evaluation protocol. Automatic metrics remain useful for detecting over-editing, loss of texture, and structural drift, but they should be interpreted alongside blinded human ratings that assess restoration quality, archival texture, and visual plausibility.
+
+
 ## 9. Results
 
 To be completed.

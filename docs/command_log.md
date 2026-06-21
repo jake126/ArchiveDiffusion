@@ -223,3 +223,75 @@ python ".\scripts\evaluate_restoration_outputs.py" `
   --output_metrics ".\evaluations\results\conditional_ddpm_restoration_metrics.csv" `
   --output_summary ".\evaluations\results\conditional_ddpm_restoration_summary.csv" `
   --output_grid ".\outputs\evaluation_grids\conditional_ddpm_restoration_examples.png"
+
+\## 16. Train test split
+python ".\scripts\create_train_val_test_split.py" `
+   --metadata_path ".\data\processed\synthetic_restoration\nosferatu_v0\metadata.csv" `
+   --output_path ".\data\processed\synthetic_restoration\nosferatu_v0\metadata_with_splits.csv" `
+   --train_fraction 0.70 `
+   --val_fraction 0.15 `
+   --test_fraction 0.15 `
+   --seed 42
+
+\## 17. Training loss curves
+python ".\scripts\plot_training_curves.py" `
+  --run_dir ".\outputs\models\conditional_ddpm_nosferatu_v0_cpu_test" `
+  --output_path ".\outputs\training_curves\conditional_ddpm_v0_cpu_test_loss.png" `
+  --title "Conditional DDPM v0 CPU test training loss"
+
+  python ".\scripts\plot_training_curves.py" `
+  --run_dir ".\outputs\models\conditional_ddpm_nosferatu_v1_cpu_long" `
+  --output_path ".\outputs\training_curves\conditional_ddpm_v1_cpu_long_loss.png" `
+  --title "Conditional DDPM v1 CPU long-run training loss"
+
+\## 18. Training a split-aware model
+python ".\scripts\train_conditional_ddpm.py" `
+  --dataset_dir ".\data\processed\synthetic_restoration\nosferatu_v0" `
+  --metadata_file "metadata_with_splits.csv" `
+  --train_split train `
+  --val_split val `
+  --output_dir ".\outputs\models\conditional_ddpm_nosferatu_v2_splitaware" `
+  --image_size 128 `
+  --batch_size 2 `
+  --epochs 150 `
+  --learning_rate 1e-4 `
+  --num_train_timesteps 1000 `
+  --seed 42 `
+  --save_every_epochs 50 `
+  --use_mlflow `
+  --mlflow_tracking_uri "sqlite:///mlflow.db" `
+  --mlflow_experiment_name "ArchiveDiffusion" `
+  --run_name "conditional_ddpm_v2_splitaware_150epochs"
+
+\## 19. Sampling predictions of the retrained train/test split model
+python ".\scripts\sample_conditional_ddpm.py" `
+  --model_dir ".\outputs\models\conditional_ddpm_nosferatu_v2_splitaware\final" `
+  --dataset_dir ".\data\processed\synthetic_restoration\nosferatu_v0" `
+  --metadata_file ".\metadata_with_splits.csv" `
+  --split test `
+  --output_dir ".\outputs\predictions\conditional_ddpm_nosferatu_v2_test_50steps" `
+  --method_name "conditional_ddpm_v2_test_50_steps" `
+  --num_inference_steps 50
+
+\## 20. Generate blinded review widget
+python ".\scripts\create_human_review_sheet.py" `
+  --metadata_file ".\data\processed\synthetic_restoration\nosferatu_v0\metadata_with_splits.csv" `
+  --split test `
+  --prediction_manifest ".\outputs\predictions\baselines_nosferatu_v0\prediction_manifest.csv" `
+  --prediction_manifest ".\outputs\predictions\conditional_ddpm_nosferatu_v1_50steps\prediction_manifest.csv" `
+  --prediction_manifest ".\outputs\predictions\conditional_ddpm_nosferatu_v1_100steps\prediction_manifest.csv" `
+  --prediction_manifest ".\outputs\predictions\conditional_ddpm_nosferatu_v2_test_50steps\prediction_manifest.csv" `
+  --output_dir ".\evaluations\human_review\review_sheets\ddpm_v2_blinded" `
+  --output_csv ".\evaluations\human_review\ddpm_v2_review_items_blinded.csv" `
+  --answer_key_csv ".\evaluations\human_review\ddpm_v2_answer_key.csv" `
+  --max_examples 30 `
+  --seed 42 `
+  --panel_size 256 `
+  --title "ArchiveDiffusion DDPM v2 blinded review"
+
+\## 21. evaluating the human review
+python ".\scripts\human_evaluation_summary.py" `
+  --ratings_csv ".\evaluations\human_review\ddpm2_human_review_ratings.csv" `
+  --answer_key_csv ".\evaluations\human_review\ddpm_v2_answer_key.csv" `
+  --output_dir ".\evaluations\human_review" `
+  --output_prefix "ddpm2_human_review"

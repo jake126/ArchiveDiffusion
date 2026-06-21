@@ -1,0 +1,14 @@
+{
+  "ratings_csv": "evaluations\\human_review\\ddpm2_human_review_ratings.csv",
+  "answer_key_csv": "evaluations\\human_review\\ddpm_v2_answer_key.csv",
+  "n_review_items": 147,
+  "n_missing_overall_ratings": 0,
+  "outputs": {
+    "merged_ratings": "evaluations\\human_review\\ddpm2_human_review_merged_ratings.csv",
+    "summary_by_method": "evaluations\\human_review\\ddpm2_human_review_summary_by_method.csv",
+    "summary_by_degradation": "evaluations\\human_review\\ddpm2_human_review_summary_by_degradation.csv",
+    "summary_by_split": "evaluations\\human_review\\ddpm2_human_review_summary_by_split.csv",
+    "missing_ratings": "evaluations\\human_review\\ddpm2_human_review_missing_ratings.csv",
+    "markdown_report": "evaluations\\human_review\\ddpm2_human_review_report.md"
+  }
+}
