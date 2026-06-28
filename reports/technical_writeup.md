@@ -83,7 +83,18 @@ These findings motivate a two-layer evaluation protocol. Automatic metrics remai
 
 ## 9. Results
 
-To be completed.
+### Model calibration review: conditional DDPM vs residual DDPM
+
+After the initial blinded review showed that diffusion outputs were preferred over classical baselines more often than pixel-level metrics suggested, I ran a harder model-calibration review focused only on diffusion variants. This review compared five outputs per held-out test example: the previous split-aware 50-step DDPM reference, the previous non-split-aware 100-step DDPM reference, a longer split-aware conditional DDPM, residual DDPM with full correction, and residual DDPM with conservative correction.
+
+Residual DDPM was introduced to address a weakness identified in the earlier review: full-image conditional DDPM can remove visible degradation, but may also over-edit the image, reduce archival texture, or drift away from the input. Instead of generating a whole restored frame, residual DDPM predicts a correction to the degraded input. The restored image is then formed by adding the predicted correction back to the input. This biases the model toward preservation rather than full-frame regeneration. Two residual variants were evaluated: full correction and conservative correction.
+
+The second blinded review covered 21 held-out test examples and 105 anonymous model outputs. The previous DDPM models remained strongest. `conditional_ddpm_v1_100_steps` achieved the highest mean overall human score, 3.19 / 5, while `conditional_ddpm_v1_50_steps` was effectively tied at 3.14 / 5. Both had a yes/maybe restoration-choice rate of 66.7%. This confirms that the earlier preference for DDPM was not simply caused by comparison against weak classical baselines: the earlier DDPM outputs remained competitive in a harder diffusion-only comparison.
+
+The new variants were informative but did not outperform the earlier DDPM references. The residual DDPM full-correction model was the strongest new variant, with a mean overall score of 2.76 and a yes/maybe rate of 52.4%. The longer split-aware conditional DDPM scored 2.62 overall with a yes/maybe rate of 38.1%. The conservative residual model scored lowest overall, 2.38, although it had the lowest over-smoothing and hallucination-risk ratings. This suggests that conservative residual correction did reduce some risks associated with over-editing, but at the cost of insufficient restoration strength.
+
+These findings suggest that the main limitation is unlikely to be sampling length alone. The earlier 50-step and 100-step DDPM outputs remained very close in human evaluation, while the longer split-aware run did not close the gap to the older non-split-aware models. A plausible explanation is reduced data exposure: the split-aware model sees fewer training frames than the original full-data model. The next priority is therefore to expand the training dataset while preserving split-aware evaluation, for example by using more clean-ish source frames and multiple synthetic degradation variants per frame. Residual correction remains a promising restoration-specific idea, but it likely needs either more training data or a tuned correction-strength sweep to balance artifact removal against archival preservation.
+
 
 ## 10. Failure cases
 

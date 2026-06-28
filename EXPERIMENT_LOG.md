@@ -232,3 +232,23 @@ Automatic metrics appear overly punitive for diffusion outputs that are visually
 
 Next step:
 As the split-aware model showed weaker human evaluation, the next experiments should therefore focus less on early stopping and more on objective and sampling changes: residual prediction, x0 prediction, stronger conditioning, larger/more diverse training data, and evaluation using both automatic metrics and blinded human scores. Following this, human ratings can be used as a calibration layer alongside automatic metrics. Future evaluations should report both fidelity metrics and human-calibrated restoration criteria. The next model iteration should train on the train split only, monitor validation loss, evaluate on the held-out test split, and compare outputs using both automatic summaries and blinded human review.
+
+## 2026-06-08 - DDPM calibration and residual DDPM comparison
+
+**Question:**
+Can the weaker split-aware DDPM results be improved through longer split-aware training or a residual restoration objective, and do these changes improve human-perceived restoration quality relative to the previous DDPM references?
+
+**Setup:**
+Evaluation used the held-out test split from `metadata_with_splits.csv`. A blinded browser-based human review compared five anonymous diffusion outputs per test example: the previous split-aware 50-step DDPM reference, the previous non-split-aware 100-step DDPM reference, the longer split-aware conditional DDPM, residual DDPM with full correction, and residual DDPM with conservative correction. The review covered 21 test examples and 105 anonymous outputs. Each output was rated for artifact removal, detail preservation, texture authenticity, over-smoothing, hallucination risk, overall restoration quality, and whether it would be chosen for restoration.
+
+**Result:**
+The review produced complete ratings for all 105 items. The previous non-split-aware DDPM variants remained strongest: `conditional_ddpm_v1_100_steps` achieved the highest mean overall score, 3.19 / 5, and `conditional_ddpm_v1_50_steps` was effectively tied at 3.14 / 5. Both had a yes/maybe restoration-choice rate of 66.7%. The residual DDPM full-correction model was the strongest new variant, with an overall mean of 2.76 and a yes/maybe rate of 52.4%, but it did not outperform the earlier DDPM references. The longer split-aware conditional DDPM achieved an overall mean of 2.62 and a yes/maybe rate of 38.1%. The conservative residual DDPM had the lowest overall score, 2.38, and appeared to under-correct despite having the lowest over-smoothing and hallucination-risk ratings.
+
+**What worked:**
+The model-calibration review provided a harder and more informative comparison than the earlier baseline review, because it compared diffusion variants against each other rather than against weaker classical baselines. The previous DDPM results remained strong under this harder review, suggesting that the earlier human preference for DDPM was not only an artefact of comparing against weak baselines. Residual DDPM was useful as a targeted test of the over-editing hypothesis: it reduced some risk indicators, especially in the conservative setting, but at the cost of lower artifact removal and lower overall restoration quality.
+
+**What failed / looked suspicious:**
+Longer split-aware training did not close the gap to the earlier non-split-aware DDPM models. This suggests that the main issue may be reduced data exposure in the split-aware setting rather than insufficient optimisation alone. The residual DDPM variants also did not outperform the earlier full-image DDPM references. The conservative residual model preserved more and showed lower over-smoothing/hallucination risk, but this likely made it too weak as a restoration method. The full residual model was more competitive, but still below the earlier DDPMs in overall human preference.
+
+**Next step:**
+Prioritise increasing data diversity and training exposure while maintaining split-aware evaluation. Future dataset iterations should use more clean-ish source frames and/or multiple synthetic degradation variants per frame, with splits grouped by source frame to prevent leakage. Future DDPM calibration should keep 50-step sampling as the default, since 50-step and 100-step DDPM remain nearly indistinguishable in human review. Residual correction remains a useful direction, but it should be revisited after increasing dataset size or tuning correction strength between the conservative and full settings.
