@@ -295,3 +295,129 @@ python ".\scripts\human_evaluation_summary.py" `
   --answer_key_csv ".\evaluations\human_review\ddpm_v2_answer_key.csv" `
   --output_dir ".\evaluations\human_review" `
   --output_prefix "ddpm2_human_review"
+
+\## 22. Longer training with train / val splits
+python ".\scripts\train_conditional_ddpm.py" `
+  --dataset_dir ".\data\processed\synthetic_restoration\nosferatu_v0" `
+  --metadata_file "metadata_with_splits.csv" `
+  --train_split train `
+  --val_split val `
+  --output_dir ".\outputs\models\conditional_ddpm_v3_splitaware_optimised" `
+  --image_size 128 `
+  --batch_size 2 `
+  --epochs 250 `
+  --learning_rate 7.5e-5 `
+  --num_train_timesteps 1000 `
+  --seed 42 `
+  --save_every_epochs 50 `
+  --use_mlflow `
+  --mlflow_tracking_uri "sqlite:///mlflow.db" `
+  --mlflow_experiment_name "ArchiveDiffusion" `
+  --run_name "conditional_ddpm_v3_splitaware_optimised_250epochs"
+
+\## 23. train residual DDPM model
+python ".\scripts\train_residual_conditional_ddpm.py" `
+  --dataset_dir ".\data\processed\synthetic_restoration\nosferatu_v0" `
+  --metadata_file "metadata_with_splits.csv" `
+  --train_split train `
+  --val_split val `
+  --output_dir ".\outputs\models\residual_ddpm_v1_splitaware" `
+  --image_size 128 `
+  --batch_size 2 `
+  --epochs 250 `
+  --learning_rate 7.5e-5 `
+  --num_train_timesteps 1000 `
+  --seed 42 `
+  --save_every_epochs 50 `
+  --use_mlflow `
+  --mlflow_tracking_uri "sqlite:///mlflow.db" `
+  --mlflow_experiment_name "ArchiveDiffusion" `
+  --run_name "residual_ddpm_v1_splitaware_250epochs"
+
+\## 24. sample longer train test split
+python ".\scripts\sample_conditional_ddpm.py" `
+  --model_dir ".\outputs\models\conditional_ddpm_v3_splitaware_optimised\final" `
+  --dataset_dir ".\data\processed\synthetic_restoration\nosferatu_v0" `
+  --metadata_file "metadata_with_splits.csv" `
+  --split test `
+  --output_dir ".\outputs\predictions\conditional_ddpm_v3_splitaware_50steps" `
+  --method_name "conditional_ddpm_v3_splitaware_50_steps" `
+  --num_inference_steps 50
+
+\## 25. sample residual DDPM model (full strength)
+python ".\scripts\sample_residual_conditional_ddpm.py" `
+  --model_dir ".\outputs\models\residual_ddpm_v1_splitaware\final" `
+  --dataset_dir ".\data\processed\synthetic_restoration\nosferatu_v0" `
+  --metadata_file "metadata_with_splits.csv" `
+  --split test `
+  --output_dir ".\outputs\predictions\residual_ddpm_v1_full_test_50steps" `
+  --method_name "residual_ddpm_v1_full_test_50_steps" `
+  --num_inference_steps 50 `
+  --correction_strength 1.0
+
+\## 26. sample residual DDPM model (conservative)
+python ".\scripts\sample_residual_conditional_ddpm.py" `
+  --model_dir ".\outputs\models\residual_ddpm_v1_splitaware\final" `
+  --dataset_dir ".\data\processed\synthetic_restoration\nosferatu_v0" `
+  --metadata_file "metadata_with_splits.csv" `
+  --split test `
+  --output_dir ".\outputs\predictions\residual_ddpm_v1_conservative_test_50steps" `
+  --method_name "residual_ddpm_v1_conservative_test_50_steps" `
+  --num_inference_steps 50 `
+  --correction_strength 0.5
+
+\## 27. Evaluate optimised DDPM
+python ".\scripts\evaluate_restoration_outputs.py" `
+  --prediction_manifest ".\outputs\predictions\conditional_ddpm_v3_splitaware_50steps\prediction_manifest.csv" `
+  --output_metrics ".\evaluations\results\conditional_ddpm_v3_splitaware_50steps_metrics.csv" `
+  --output_summary ".\evaluations\results\conditional_ddpm_v3_splitaware_50steps_summary.csv" `
+  --output_grid ".\outputs\evaluation_grids\conditional_ddpm_v3_splitaware_50steps_examples.png"
+
+\## 28. Evaluate full residual DDPM
+python ".\scripts\evaluate_restoration_outputs.py" `
+  --prediction_manifest ".\outputs\predictions\residual_ddpm_v1_full_test_50steps\prediction_manifest.csv" `
+  --output_metrics ".\evaluations\results\residual_ddpm_v1_full_test_50steps_metrics.csv" `
+  --output_summary ".\evaluations\results\residual_ddpm_v1_full_test_50steps_summary.csv" `
+  --output_grid ".\outputs\evaluation_grids\residual_ddpm_v1_full_test_50steps_examples.png"
+
+\## 29. Evaluate conservative residual DDPM
+python ".\scripts\evaluate_restoration_outputs.py" `
+  --prediction_manifest ".\outputs\predictions\residual_ddpm_v1_conservative_test_50steps\prediction_manifest.csv" `
+  --output_metrics ".\evaluations\results\residual_ddpm_v1_conservative_test_50steps_metrics.csv" `
+  --output_summary ".\evaluations\results\residual_ddpm_v1_conservative_test_50steps_summary.csv" `
+  --output_grid ".\outputs\evaluation_grids\residual_ddpm_v1_conservative_test_50steps_examples.png"
+
+\## 30. Generate evaluation sheets for residual DDPMs
+python ".\scripts\create_human_review_sheet.py" `
+  --metadata_file ".\data\processed\synthetic_restoration\nosferatu_v0\metadata_with_splits.csv" `
+  --split test `
+  --prediction_manifest ".\outputs\predictions\conditional_ddpm_nosferatu_v1_50steps\prediction_manifest.csv" `
+  --prediction_manifest ".\outputs\predictions\conditional_ddpm_nosferatu_v1_100steps\prediction_manifest.csv" `
+  --prediction_manifest ".\outputs\predictions\conditional_ddpm_v3_splitaware_50steps\prediction_manifest.csv" `
+  --prediction_manifest ".\outputs\predictions\residual_ddpm_v1_full_test_50steps\prediction_manifest.csv" `
+  --prediction_manifest ".\outputs\predictions\residual_ddpm_v1_conservative_test_50steps\prediction_manifest.csv" `
+  --output_dir ".\evaluations\human_review\review_sheets\model_calibration_v1_blinded" `
+  --output_csv ".\evaluations\human_review\model_calibration_v1_review_items_blinded.csv" `
+  --answer_key_csv ".\evaluations\human_review\model_calibration_v1_answer_key.csv" `
+  --max_examples 21 `
+  --seed 123 `
+  --panel_size 256 `
+  --title "ArchiveDiffusion model calibration v1 blinded review"
+
+\## 31. Evaluation summary for residual DDPM
+python ".\scripts\human_evaluation_summary.py" `
+  --ratings_csv ".\evaluations\human_review\model_calibration_v1_human_review_ratings.csv" `
+  --answer_key_csv ".\evaluations\human_review\model_calibration_v1_answer_key.csv" `
+  --output_dir ".\evaluations\human_review" `
+  --output_prefix "model_calibration_v1"
+
+\## 32. Loss curves for updated models
+python ".\scripts\plot_training_curves.py" `
+  --run_dir ".\outputs\models\residual_ddpm_v1_splitaware" `
+  --output_path ".\outputs\training_curves\residual_ddpm_v1_splitaware_train_val_loss.png" `
+  --title "Residual DDPM v1 split-aware train/validation loss"
+
+python ".\scripts\plot_training_curves.py" `
+  --run_dir ".\outputs\models\conditional_ddpm_v3_splitaware_optimised" `
+  --output_path ".\outputs\training_curves\conditional_ddpm_v3_splitaware_optimised_train_val_loss.png" `
+  --title "Conditional DDPM v3 split-aware optimised train/validation loss"
