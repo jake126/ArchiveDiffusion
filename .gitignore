@@ -18,6 +18,7 @@ outputs/predictions/*
 evaluations/human_review/review_sheets/*
 mlruns/
 mlflow.db
+scripts/create_writeup_figures.py
 *.mp4
 *.mpg
 *.mkv

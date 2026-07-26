@@ -30,6 +30,8 @@ The project is intended to demonstrate:
 * thoughtful handling of hallucination, authenticity, and model behaviour;
 * clear research communication through a public technical write-up.
 
+Note that a command log and all scripts are included in this repo, so results should be fully reproducible; if there are any issues getting things working, please get in touch! Note also that a good chunk of this report and the underlying code have been built with my research assistant ChatGPT (5.4 and 5.5). The important stuff is handwritten, but apologies for any legacy "here's the code you asked for" comments and repo artifacts.
+
 ## Planned outputs
 
 * Dataset preparation scripts for extracting and pre-processing public-domain film frames
@@ -44,7 +46,7 @@ The project is intended to demonstrate:
 
 ## Evaluation layer
 
-The repository contains evaluations to track quantitative fidelity, perceptual/archival quality, robustness across degradation types, sampling-speed trade-offs, and a small nearest-neighbour memorisation audit.
+The repository contains evaluations to track quantitative fidelity, perceptual/archival quality, robustness across degradation types, sampling-speed trade-offs, and a human review!
 
 ## Repository structure
 
@@ -54,47 +56,25 @@ ArchiveDiffusion/
   PROJECT\_SPEC.md
   ROADMAP.md
   EXPERIMENT\_LOG.md
-  ENVIRONMENT.md
   configs/
     baseline\_ddpm.yaml
+    dataset\_manifest.csv
   docs/
+    assets\
     dataset\_notes.md
+    command\_log.md
     research\_questions.md
-  notebooks/
-    01\_dataset\_exploration.ipynb
-    02\_train\_baseline\_ddpm.ipynb
-    03\_restoration\_demo.ipynb
-    04\_evaluation.ipynb
-  src/
-    archivediffusion/
-      degradation.py
-      dataset.py
-      metrics.py
-      sample.py
-      train.py
+  scripts/
+    many, many scripts for many, many tasks. 
   outputs/
+    contact\_sheets
+    evaluation\_grids
     figures/
+    models/
+    predictions/
     samples/
+    training\_curves/
   reports/
     technical\_writeup.md
+    assets/
 ```
-
-## Status
-
-Version 0.1: project specification and repository scaffold.
-
-
-30/05/2026
-The first dataset pilot uses the opening 20 minutes of \*Nosferatu\* (1922), sourced from the Internet Archive public-domain item `Nosferatu\_DVD\_quality`. This pilot corpus is used to validate the download, frame extraction, grain-ranking, and manual-curation workflow before scaling to additional public-domain films.
-
-Raw videos and extracted frames are not committed to the repository. Dataset provenance and processing steps are documented in `docs/dataset\_notes.md` and `configs/dataset\_manifest.csv`. The main step taken here was using an OCR filter to remove text-based intertitle frames from analysis, removing 168 frames.
-
-
-31/05/2026
-
-The initial modelling strategy separates the non-text frames into two groups:
-
-1. Clean-ish archive frames: relatively stable frames with lower visible degradation. These are used to learn a domain-specific archival visual prior and to create synthetic restoration pairs.
-2. Naturally degraded archive frames: frames with stronger visible grain, scratches, marks, uneven exposure, or other artefacts. These are reserved as a real-world restoration stress test.
-
-The evaluation design uses both controlled and natural degradation. Synthetic degradations applied to clean-ish frames provide known targets for fidelity metrics such as PSNR and SSIM. Naturally degraded frames are evaluated using a structured qualitative rubric focused on blemish removal, detail preservation, hallucination avoidance, and preservation of archival film texture.
